@@ -5,7 +5,7 @@ import requests
 from datetime import datetime
 import os
 
-app = Flask(__name__, static_folder="../Frontend", static_url_path="")
+app = Flask(__name__)
 CORS(app)
 
 # ---------- AWS CONFIG ----------
@@ -14,15 +14,10 @@ users_table = dynamodb.Table('Users')
 sessions_table = dynamodb.Table('chatsessions')
 
 # ---------- OPENROUTER CONFIG ----------
-OPENROUTER_API_KEY = "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"  # replace with actual key
+OPENROUTER_API_KEY = "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"  # replace with actual key
 OPENROUTER_MODEL = "deepseek/deepseek-r1-0528-qwen3-8b:free"
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
-@app.route("/")
-def serve_home():
-    return app.send_static_file("home.html")
-@app.route("/<path:path>")
-def serve_static_file(path):
-    return app.send_static_file(path)
+
 @app.route("/signup", methods=["POST"])
 def signup():
     data = request.get_json()
@@ -134,6 +129,6 @@ def get_sessions():
     except Exception as e:
         print("Error loading sessions:", e)
         return jsonify(success=False, error="Failed to load sessions"), 500
-from flask import send_from_directory
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
