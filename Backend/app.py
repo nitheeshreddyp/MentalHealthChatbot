@@ -20,7 +20,9 @@ OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 @app.route("/")
 def serve_home():
     return app.send_static_file("home.html")
-
+@app.route("/<path:path>")
+def serve_static_file(path):
+    return app.send_static_file(path)
 @app.route("/signup", methods=["POST"])
 def signup():
     data = request.get_json()
