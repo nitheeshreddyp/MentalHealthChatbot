@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mental Health ChatBot</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-r from-green-200 via-purple-200 to-blue-200 min-h-screen">
+  <div class="flex h-screen overflow-hidden">
+    <!-- Sidebar -->
+    <div class="w-1/4 bg-indigo-700 text-white p-6 flex flex-col justify-between">
+      <div>
+        <div class="text-2xl font-bold mb-6">Mental Health<br>Chatbot</div>
+        <button onclick="startNewChat()" class="bg-indigo-500 hover:bg-indigo-600 rounded-lg px-4 py-2 mb-4 w-full text-left">
+          + New chat
+        </button>
+        <ul id="chat-history-list">
+          <!-- Dynamic chat sessions -->
+        </ul>
+      </div>
+      <button onclick="logout()" class="bg-indigo-500 hover:bg-indigo-600 rounded-lg px-4 py-2 flex items-center justify-center">
+        <span>&#8594; Log out</span>
+      </button>
+    </div>
+
+    <!-- Chat Section -->
+    <div class="w-3/4 flex flex-col">
+      <div class="p-6 overflow-auto flex-grow" id="chat-box">
+        <h1 class="text-3xl font-bold text-indigo-900 mb-6">Welcome to the Mental Health Chatbot</h1>
+        <!-- Chat messages will be appended here -->
+      </div>
+      <div class="flex items-center p-4 border-t border-gray-300">
+        <input type="text" id="user-input" placeholder="Message..." class="flex-1 px-4 py-3 rounded-l-lg border border-gray-300 focus:outline-none">
+        <button id="send-button" class="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-r-lg">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let sessionId = generateSessionId();
+    const email = localStorage.getItem("email") || "default@example.com";
+
+    const inputBox = document.querySelector("#user-input");
+    const sendButton = document.querySelector("#send-button");
+    const chatContainer = document.querySelector("#chat-box");
+    const historyList = document.querySelector("#chat-history-list");
+
+    sendButton.addEventListener("click", sendMessage);
+    inputBox.addEventListener("keypress", function (e) {
+      if (e.key === "Enter") sendMessage();
+    });
+
+    function appendMessage(text, fromAI = false) {
+      const div = document.createElement("div");
+      div.className = fromAI ? "flex justify-start items-center mt-2" : "flex justify-start mt-2";
+      const bubble = document.createElement("div");
+      bubble.className = fromAI ? "bg-green-100 text-indigo-900 px-4 py-2 rounded-lg max-w-md" : "bg-indigo-100 text-indigo-900 px-4 py-2 rounded-lg max-w-md";
+      bubble.textContent = text;
+      if (fromAI) {
+        const icon = document.createElement("div");
+        icon.className = "w-8 h-8 bg-indigo-300 rounded-full flex items-center justify-center text-white mr-2";
+        icon.textContent = "AI";
+        div.appendChild(icon);
+      }
+      div.appendChild(bubble);
+      chatContainer.appendChild(div);
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    function sendMessage() {
+      const message = inputBox.value.trim();
+      if (!message) return;
+
+      appendMessage(message, false);
+      inputBox.value = "";
+
+      fetch("http://localhost:5000/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message, sessionId, email })
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.data && data.data.response) {
+            appendMessage(data.data.response, true);
+            loadChatSessions();
+          } else {
+            appendMessage("❌ No reply from AI", true);
+          }
+        })
+        .catch(err => {
+          console.error("Chat error:", err);
+          appendMessage("❌ Server error", true);
+        });
+    }
+
+    function startNewChat() {
+      sessionId = generateSessionId();
+      chatContainer.innerHTML = "";
+    }
+
+    function generateSessionId() {
+      return Date.now().toString();
+    }
+
+    function logout() {
+      localStorage.removeItem("email");
+      window.location.href = "login.html";
+    }
+
+    function loadChatSessions() {
+      fetch(`http://localhost:5000/sessions?email=${encodeURIComponent(email)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.sessions) {
+            historyList.innerHTML = "";
+            data.sessions.forEach(session => {
+              const li = document.createElement("li");
+              li.className = "mb-2 hover:text-indigo-300 cursor-pointer";
+              const time = new Date(session.timestamp).toLocaleTimeString();
+              li.textContent = `Chat (${time})`;
+              li.onclick = () => {
+                sessionId = session.sessionId;
+                chatContainer.innerHTML = "";
+                session.messages.forEach(msg => {
+                  appendMessage(msg.message, msg.sender === "ai");
+                });
+              };
+              historyList.appendChild(li);
+            });
+          }
+        });
+    }
+
+    loadChatSessions();
+  </script>
+</body>
+</html>
