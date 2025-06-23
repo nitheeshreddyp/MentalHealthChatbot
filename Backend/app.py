@@ -129,6 +129,11 @@ def get_sessions():
     except Exception as e:
         print("Error loading sessions:", e)
         return jsonify(success=False, error="Failed to load sessions"), 500
+from flask import send_from_directory
+
+@app.route('/')
+def serve_home():
+    return send_from_directory('../Frontend', 'home.html')
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
